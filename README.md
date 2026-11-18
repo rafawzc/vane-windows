@@ -7,9 +7,13 @@ A Claude Code mod: a side pane, a status line above the prompt, and a restyled c
 
 A personal fork of [markneonin/paneline](https://github.com/markneonin/paneline) (MIT, Copyright (c) 2026 Mark).
 
+## Credits
+
+This project is a Windows adaptation of [vane](https://github.com/guiwohl/vane), created by [guiwohl](https://github.com/guiwohl). All credit for the original design and code goes to them. The Windows port is maintained at [rafawzc/vane-windows](https://github.com/rafawzc/vane-windows). vane itself is a fork of [markneonin/paneline](https://github.com/markneonin/paneline).
+
 ## Windows
 
-This checkout is a Windows port. It works with Windows paths (`C:\...`), reads the home folder from `USERPROFILE`, and no longer needs `grep` on the `PATH`. It still runs on Linux and macOS.
+This checkout is a Windows port of [guiwohl/vane](https://github.com/guiwohl/vane). It works with Windows paths (`C:\...`), reads the home folder from `USERPROFILE`, and no longer needs `grep` on the `PATH`. It still runs on Linux and macOS.
 
 Install from PowerShell, in the folder of the checkout:
 

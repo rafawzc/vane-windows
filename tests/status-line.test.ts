@@ -22,8 +22,14 @@ const HOME = "/Users/dev";
 const PROJECT = `${HOME}/W/Projects/releezy`;
 const MODEL = "claude-opus-5-5";
 const ENGINE_HINT = "(shift+tab to cycle) · ← for agents";
-const ACCENT = "claude";
-const MUTED = "inactive";
+const MODEL_COLOR = "ansi256(208)";
+const CONTEXT = "ansi256(45)";
+const PATH = "ansi256(207)";
+const DETAIL = "ansi256(231)";
+const LOW = "ansi256(46)";
+const MID = "ansi256(220)";
+const HIGH = "ansi256(196)";
+const MUTED = "ansi256(231)";
 const PAD = { text: "  ", color: undefined, bold: true };
 const PATH_CELLS = 36;
 const SESSION_START = { cwd: PROJECT, surface: "terminal", isInteractive: true } as const;
@@ -48,19 +54,19 @@ describe("the status line", () => {
 
     expect(await piecesOf($)).toEqual([
       PAD,
-      accent("155.1k"),
-      muted(" / 1.00M"),
+      context("155.1k"),
+      detail(" / 1.00M"),
       PAD,
       PAD,
-      accent("Opus 5.5 "),
-      muted("(high)"),
+      model("Opus 5.5 "),
+      detail("(high)"),
       PAD,
       PAD,
-      accent("2%"),
-      muted(" ↻ 3h05m"),
+      limit("2%", LOW),
+      detail(" ↻ 3h05m"),
       PAD,
       PAD,
-      accent("~/W/Projects/releezy"),
+      path("~/W/Projects/releezy"),
       PAD,
     ]);
   });
@@ -70,22 +76,22 @@ describe("the status line", () => {
 
     const drawn = await piecesOf($);
 
-    expect(drawn.filter((piece) => piece.text === "usage —")).toEqual([muted("usage —")]);
+    expect(drawn.filter((piece) => piece.text === "usage —")).toEqual([quiet("usage —")]);
   });
 
   test("SL4 token counts are humanized at the boundaries", async ($, on) => {
     await worldOf($, on);
 
     await measureUsage($, { tokens: 999, window: 1_000 });
-    expect(await piecesOf($)).toEqual(expect.arrayContaining([accent("999"), muted(" / 1.0k")]));
+    expect(await piecesOf($)).toEqual(expect.arrayContaining([context("999"), detail(" / 1.0k")]));
 
     await measureUsage($, { tokens: 1_000, window: 999_999 });
     expect(await piecesOf($)).toEqual(
-      expect.arrayContaining([accent("1.0k"), muted(" / 1000.0k")]),
+      expect.arrayContaining([context("1.0k"), detail(" / 1000.0k")]),
     );
 
     await measureUsage($, { tokens: 1_000_000, window: 1_000_000 });
-    expect(await piecesOf($)).toEqual(expect.arrayContaining([accent("1.00M"), muted(" / 1.00M")]));
+    expect(await piecesOf($)).toEqual(expect.arrayContaining([context("1.00M"), detail(" / 1.00M")]));
   });
 
   test("SL5 a reset shows the largest unit", async ($, on) => {
@@ -95,9 +101,9 @@ describe("the status line", () => {
       return piecesOf($);
     };
 
-    expect(await resetPiece(2 * DAY_MS + 3 * HOUR_MS)).toContainEqual(muted(" ↻ 2d3h"));
-    expect(await resetPiece(3 * HOUR_MS + 5 * MINUTE_MS)).toContainEqual(muted(" ↻ 3h05m"));
-    expect(await resetPiece(45 * MINUTE_MS)).toContainEqual(muted(" ↻ 45m"));
+    expect(await resetPiece(2 * DAY_MS + 3 * HOUR_MS)).toContainEqual(detail(" ↻ 2d3h"));
+    expect(await resetPiece(3 * HOUR_MS + 5 * MINUTE_MS)).toContainEqual(detail(" ↻ 3h05m"));
+    expect(await resetPiece(45 * MINUTE_MS)).toContainEqual(detail(" ↻ 45m"));
   });
 
   test("SL6 a long directory is cut to an ellipsis and its last 35 characters", async ($, on) => {
@@ -106,7 +112,7 @@ describe("the status line", () => {
 
     const shown = `~/${tail}`;
 
-    expect(await piecesOf($)).toContainEqual(accent(`…${shown.slice(-35)}`));
+    expect(await piecesOf($)).toContainEqual(path(`…${shown.slice(-35)}`));
   });
 
   test("SL9 a directory of wide characters is cut by display cells, not by string length", async ($, on) => {
@@ -128,13 +134,13 @@ describe("the status line", () => {
   test("SL11 a dated model name drops the prefix and the date", async ($, on) => {
     await worldOf($, on, { model: "claude-haiku-4-5-20251001" });
 
-    expect(await piecesOf($)).toContainEqual(accent("Haiku 4.5 "));
+    expect(await piecesOf($)).toContainEqual(model("Haiku 4.5 "));
   });
 
   test("SL12 a directory that merely starts like home keeps its full path", async ($, on) => {
     await worldOf($, on, { cwd: "/Users/devops/app" });
 
-    expect(await piecesOf($)).toContainEqual(accent("/Users/devops/app"));
+    expect(await piecesOf($)).toContainEqual(path("/Users/devops/app"));
   });
 
   test("SL13 switching the model updates the model shown", async ($, on) => {
@@ -142,7 +148,7 @@ describe("the status line", () => {
 
     await $.classic.PostModelSwitch(modelSwitch(MODEL, "claude-haiku-4-5"));
 
-    expect(await piecesOf($)).toContainEqual(accent("Haiku 4.5 "));
+    expect(await piecesOf($)).toContainEqual(model("Haiku 4.5 "));
   });
 
   test("SL14 a subagent stopping does not overwrite the main chat effort", async ($, on) => {
@@ -155,7 +161,7 @@ describe("the status line", () => {
       agent_id: "agent-1",
     });
 
-    expect(await piecesOf($)).toContainEqual(muted("(high)"));
+    expect(await piecesOf($)).toContainEqual(detail("(high)"));
   });
 
   test("SL15 a limit with no reset time shows the percent and no time", async ($, on) => {
@@ -163,8 +169,21 @@ describe("the status line", () => {
 
     const drawn = await piecesOf($);
 
-    expect(drawn).toContainEqual(accent("48%"));
+    expect(drawn).toContainEqual(limit("48%", LOW));
     expect(drawn.map((piece) => piece.text).join("")).not.toContain("↻");
+  });
+
+  test("SL17 a limit percent turns warning from 50 and error from 80", async ($, on) => {
+    await worldOf($, on);
+    const percentPiece = async (percentUsed: number) => {
+      await measureUsage($, { limits: [{ kind: "five_hour", percentUsed }] });
+      return piecesOf($);
+    };
+
+    expect(await percentPiece(49)).toContainEqual(limit("49%", LOW));
+    expect(await percentPiece(50)).toContainEqual(limit("50%", MID));
+    expect(await percentPiece(79)).toContainEqual(limit("79%", MID));
+    expect(await percentPiece(80)).toContainEqual(limit("80%", HIGH));
   });
 
   test("SL16 a turn ending keeps the measured figures instead of the stale ones", async ($, on) => {
@@ -190,14 +209,14 @@ describe("the status line", () => {
 
     expect(await piecesOf($)).toEqual([
       PAD,
-      accent("Opus 5.5 "),
-      muted("(—)"),
+      model("Opus 5.5 "),
+      detail("(—)"),
       PAD,
       PAD,
-      muted("usage —"),
+      quiet("usage —"),
       PAD,
       PAD,
-      accent("~/W/Projects/releezy"),
+      path("~/W/Projects/releezy"),
       PAD,
     ]);
   });
@@ -266,7 +285,7 @@ async function effortStop($: Engine, level: string): Promise<void> {
 }
 
 function pathPiece(pieces: Piece[]): string {
-  return pieces.filter((piece) => piece.color === ACCENT).at(-1)?.text ?? "";
+  return pieces.filter((piece) => piece.color === PATH).at(-1)?.text ?? "";
 }
 
 function modelSwitch(
@@ -286,13 +305,16 @@ function modelSwitch(
   };
 }
 
-function accent(text: string): Piece {
-  return { text, color: ACCENT, bold: true };
+function styled(text: string, color: string): Piece {
+  return { text, color, bold: true };
 }
 
-function muted(text: string): Piece {
-  return { text, color: MUTED, bold: true };
-}
+const context = (text: string) => styled(text, CONTEXT);
+const model = (text: string) => styled(text, MODEL_COLOR);
+const path = (text: string) => styled(text, PATH);
+const detail = (text: string) => styled(text, DETAIL);
+const quiet = (text: string) => styled(text, MUTED);
+const limit = (text: string, color: string) => styled(text, color);
 
 async function piecesOf($: Engine, hint = ENGINE_HINT): Promise<Piece[]> {
   const mounted = await $.ui.mount({

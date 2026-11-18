@@ -7,6 +7,20 @@ A Claude Code mod: a side pane, a status line above the prompt, and a restyled c
 
 A personal fork of [markneonin/paneline](https://github.com/markneonin/paneline) (MIT, Copyright (c) 2026 Mark).
 
+## Windows
+
+This checkout is a Windows port. It works with Windows paths (`C:\...`), reads the home folder from `USERPROFILE`, and no longer needs `grep` on the `PATH`. It still runs on Linux and macOS.
+
+Install from PowerShell, in the folder of the checkout:
+
+```powershell
+git clone <this repository> $env:USERPROFILE\.claude\mods\vane-windows
+cd $env:USERPROFILE\.claude\mods\vane-windows
+.\install.ps1 install      # also: update, remove, and -DryRun
+```
+
+Then `/reload-plugins`, or restart Claude Code. The installer runs `claude plugin marketplace add` on the folder and `claude plugin install vane@vane-windows`, so Claude Code reads the plugin straight from the checkout. If `vane@vane` is enabled, it disables it so the pane is not drawn twice. Needs `git`, the `claude` CLI and Windows PowerShell 5.1 or newer. If PowerShell blocks the script, run it with `powershell -ExecutionPolicy Bypass -File .\install.ps1 install`.
+
 ## Installing
 
 On Claude Code 2.1.275 or later, one line:

@@ -3,6 +3,7 @@ import type { ElementTable, RenderElement } from "claude-code";
 import { TEXT_COLUMN } from "./chat-draw";
 import { diffstat } from "./activity-track";
 import { memo } from "./memo";
+import { relativePath, tildePath } from "./paths";
 import type { Accent } from "./pane-kit";
 import { palette } from "./palette";
 import type { Fills } from "./palette";
@@ -196,9 +197,8 @@ function headerView(
 }
 
 function displayPath(path: string, cwd: string, home: string | undefined): string {
-  if (cwd !== "" && path.startsWith(`${cwd}/`)) return path.slice(cwd.length + 1);
-  if (home && path.startsWith(`${home}/`)) return `~${path.slice(home.length)}`;
-  return path;
+  const inCwd = cwd === "" ? path : relativePath(path, cwd);
+  return inCwd === path ? tildePath(path, home) : inCwd;
 }
 
 type Tag = { key: string; text: string; color: string };

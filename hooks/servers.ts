@@ -1,4 +1,5 @@
 import type { ContextMcpTool } from "claude-code";
+import { slashPath } from "./paths";
 
 export type McpAction = "reconnect" | "disable" | "enable";
 
@@ -80,13 +81,19 @@ function projectOf(
   config: ClaudeConfig,
   cwd: string,
 ): { root: string; project: ProjectConfig } | undefined {
-  const projects = config.projects ?? {};
-  const root = ancestorsOf(cwd).find((path) => path in projects);
-  const project = root === undefined ? undefined : projects[root];
+  const projects = new Map(
+    Object.entries(config.projects ?? {}).map(([key, value]) => [slashPath(key), value] as const),
+  );
+  const root = ancestorsOf(slashPath(cwd)).find((path) => projects.has(path));
+  const project = root === undefined ? undefined : projects.get(root);
   return root === undefined || project === undefined ? undefined : { root, project };
 }
 
 function ancestorsOf(path: string): string[] {
   const parts = path.split("/");
-  return parts.map((_, index) => parts.slice(0, parts.length - index).join("/") || "/");
+  return parts.map((_, index) => {
+    const joined = parts.slice(0, parts.length - index).join("/");
+    if (joined === "") return "/";
+    return joined.endsWith(":") ? `${joined}/` : joined;
+  });
 }

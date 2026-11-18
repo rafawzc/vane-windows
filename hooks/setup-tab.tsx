@@ -13,6 +13,7 @@ import type { McpConfig } from "./mcp-config";
 import { mcpCommandName } from "./mcp-name";
 import { TOOL_USES_KEY } from "./mcp-track";
 import { PANE } from "./pane-tab";
+import { homeFolder } from "./paths";
 import { BODY_INDENT_CELLS, setupTab } from "./setup-draw";
 import { isShownTab, justEntered } from "./shown-tab";
 import { skillsTab } from "./skills-draw";
@@ -139,8 +140,12 @@ function resetSetup(): void {
 }
 
 async function foldersOf($: EngineInterface): Promise<Folders> {
-  const [home, cwd] = await Promise.all([$.env.get("HOME"), $.session.cwd()]);
-  return { home: home ?? "", cwd };
+  const [profile, home, cwd] = await Promise.all([
+    $.env.get("USERPROFILE"),
+    $.env.get("HOME"),
+    $.session.cwd(),
+  ]);
+  return { home: homeFolder(profile, home) ?? "", cwd };
 }
 
 function contextOf($: EngineInterface): Promise<SessionContextBreakdown | null> {

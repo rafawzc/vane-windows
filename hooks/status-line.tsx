@@ -3,12 +3,22 @@ import type { On } from "claude-code";
 
 import type { PromptInfo, UsageSnap } from "../types";
 import { shortModel } from "./format";
-import { tildePath } from "./paths";
+import { homeFolder, tildePath } from "./paths";
 import { clipStart } from "./text-width";
 
 const DROPPED_HINTS = new Set(["(shift+tab to cycle)", "← for agents"]);
-const ACCENT = "claude";
-const MUTED = "inactive";
+const BLACK = "ansi256(16)";
+const WHITE = "ansi256(231)";
+const MODEL_COLOR = "ansi256(208)";
+const CONTEXT_COLOR = "ansi256(45)";
+const PATH_COLOR = "ansi256(207)";
+const MUTED = WHITE;
+const DETAIL = WHITE;
+const LOW = "ansi256(46)";
+const MID = "ansi256(220)";
+const HIGH = "ansi256(196)";
+const MID_PERCENT = 50;
+const HIGH_PERCENT = 80;
 const NO_EFFORT = "—";
 const JOIN = " · ";
 const PATH_ROOM = 36;
@@ -34,21 +44,29 @@ export function renderStatusLine(on: On): void {
     const [usage, info, home, nowMs] = await Promise.all([
       read($, usageAtom),
       read($, promptInfoAtom),
-      $.env.get("HOME"),
+      Promise.all([$.env.get("USERPROFILE"), $.env.get("HOME")]).then(([profile, home]) =>
+        homeFolder(profile, home),
+      ),
       $.clock.now(),
     ]);
     const { Box, Text } = $.ui.resolve(e);
     const kept = keptHint(e.props.hint);
 
     return (
-      <Box>
+      <Box backgroundColor={BLACK}>
         {statusPieces(usage, info, home, nowMs).map((piece, index) => (
-          <Text key={String(index)} bold color={piece.color} wrap="truncate-end">
+          <Text
+            key={String(index)}
+            bold
+            color={piece.color}
+            backgroundColor={BLACK}
+            wrap="truncate-end"
+          >
             {piece.text}
           </Text>
         ))}
         {kept === "" ? null : (
-          <Text color={MUTED} wrap="truncate-end">
+          <Text color={MUTED} backgroundColor={BLACK} wrap="truncate-end">
             {kept}
           </Text>
         )}
@@ -77,8 +95,8 @@ function contextPieces(usage: UsageSnap): Piece[] {
   if (usage.tokens === null || usage.window === null) return [];
 
   return [
-    { text: humanize(usage.tokens), color: ACCENT },
-    { text: ` / ${humanize(usage.window)}`, color: MUTED },
+    { text: humanize(usage.tokens), color: CONTEXT_COLOR },
+    { text: ` / ${humanize(usage.window)}`, color: DETAIL },
   ];
 }
 
@@ -95,8 +113,8 @@ function modelPieces(info: PromptInfo): Piece[] {
   const effort = info.effort === null || info.effort === "" ? NO_EFFORT : info.effort;
 
   return [
-    { text: `${name} `, color: ACCENT },
-    { text: `(${effort})`, color: MUTED },
+    { text: `${name} `, color: MODEL_COLOR },
+    { text: `(${effort})`, color: DETAIL },
   ];
 }
 
@@ -113,11 +131,18 @@ function limitPieces(usage: UsageSnap, nowMs: number): Piece[] {
 
       return [
         ...(index === 0 ? [] : [{ text: JOIN, color: MUTED }]),
-        { text: `${Math.round(limit.percent)}%`, color: ACCENT },
-        { text: reset === null ? "" : ` ↻ ${reset}`, color: MUTED },
+        { text: `${Math.round(limit.percent)}%`, color: limitColor(limit.percent) },
+        { text: reset === null ? "" : ` ↻ ${reset}`, color: DETAIL },
       ];
     })
     .filter((piece) => piece.text !== "");
+}
+
+function limitColor(percent: number): string {
+  if (percent >= HIGH_PERCENT) return HIGH;
+  if (percent >= MID_PERCENT) return MID;
+
+  return LOW;
 }
 
 export function resetIn(resetsAt: string | undefined, nowMs: number): string | null {
@@ -140,7 +165,7 @@ function pathPieces(info: PromptInfo, home: string | undefined): Piece[] {
   const path = tildePath(info.cwd, home);
   if (path === "") return [];
 
-  return [{ text: clipStart(path, PATH_ROOM), color: ACCENT }];
+  return [{ text: clipStart(path, PATH_ROOM), color: PATH_COLOR }];
 }
 
 function keptHint(hint: string): string {

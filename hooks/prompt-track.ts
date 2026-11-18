@@ -5,6 +5,7 @@ import type { PromptInfo } from "../types";
 import { emptySpend } from "./spend-model";
 
 const COLOR_ENTRY = '"type":"agent-color"';
+const GREP_NO_MATCH = 1;
 
 const promptInfoAtom = atom(
   { plugin: "vane", key: "promptInfo" } as const,
@@ -102,15 +103,20 @@ async function lastAgentColor(
   $: EngineInterface,
   transcriptPath: string,
 ): Promise<string | undefined> {
-  try {
-    const { stdout } = await $.process.run(["grep", "-a", COLOR_ENTRY, transcriptPath]);
-    return stdout
-      .trimEnd()
-      .split("\n")
-      .reverse()
-      .map(colorOf)
-      .find((color) => color !== undefined);
-  } catch {
-    return undefined;
+  const lines = await colorLines($, transcriptPath);
+  return lines
+    .reverse()
+    .map(colorOf)
+    .find((color) => color !== undefined);
+}
+
+async function colorLines($: EngineInterface, transcriptPath: string): Promise<string[]> {
+  const grepped = await $.process
+    .run(["grep", "-a", COLOR_ENTRY, transcriptPath])
+    .catch(() => null);
+  if (grepped !== null && grepped.exitCode <= GREP_NO_MATCH) {
+    return grepped.stdout.trimEnd().split("\n");
   }
+  const text = await $.fs.read(transcriptPath).catch(() => "");
+  return text.split(/\r?\n/).filter((line) => line.includes(COLOR_ENTRY));
 }

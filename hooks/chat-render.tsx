@@ -24,6 +24,7 @@ import type { Accent } from "./pane-kit";
 import { fillsFor } from "./palette";
 import type { Fills } from "./palette";
 import { PANE } from "./pane-tab";
+import { homeFolder } from "./paths";
 import { accentOf } from "./session-color";
 
 const DIFF_TOOLS = new Set(["Edit", "Write"]);
@@ -112,7 +113,9 @@ async function drawWithChanges<E extends CallEvent>(
   if (changes === null) return next(e);
   const [{ cwd }, home, accent, fills] = await Promise.all([
     read($, promptInfoAtom),
-    $.env.get("HOME"),
+    Promise.all([$.env.get("USERPROFILE"), $.env.get("HOME")]).then(([profile, home]) =>
+      homeFolder(profile, home),
+    ),
     currentAccent($),
     currentFills($),
   ]);
